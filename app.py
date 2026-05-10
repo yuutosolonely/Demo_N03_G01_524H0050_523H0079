@@ -28,7 +28,13 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = os.urandom(32).hex()
 app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024  # 50MB max upload
 
-if os.path.exists('/app/data'):
+database_url = os.environ.get('DATABASE_URL')
+if database_url:
+    # SQLAlchemy 1.4+ yêu cầu URL bắt đầu bằng postgresql:// thay vì postgres://
+    if database_url.startswith("postgres://"):
+        database_url = database_url.replace("postgres://", "postgresql://", 1)
+    app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+elif os.path.exists('/app/data'):
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////app/data/app.db"
 else:
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///app.db"
