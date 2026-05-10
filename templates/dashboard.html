@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Digital Signature Tool{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Welcome, <span class="gradient-text">{{ current_user.username }}</span></h1>
+    <p class="page-subtitle">Manage your keys and view your audit logs</p>
+</div>
+
+<div class="dashboard-layout" style="display: grid; grid-template-columns: 1fr; gap: 24px;">
+    <!-- Key Management -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">🔑 My Keys</h2>
+            <a href="{{ url_for('sender') }}" class="btn btn-primary btn-sm" style="float: right;">Generate New</a>
+        </div>
+        <div class="card-body">
+            {% if keys %}
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; text-align: left; border-collapse: collapse; color: var(--text-secondary);">
+                    <thead>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <th style="padding: 12px;">Name</th>
+                            <th style="padding: 12px;">Algorithm</th>
+                            <th style="padding: 12px;">Size</th>
+                            <th style="padding: 12px;">Fingerprint</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for key in keys %}
+                        <tr style="border-bottom: 1px solid var(--border); transition: background 0.2s;">
+                            <td style="padding: 12px; font-weight: bold; color: var(--text-primary);">{{ key.key_name }}</td>
+                            <td style="padding: 12px;">{{ key.algorithm }}</td>
+                            <td style="padding: 12px;">{{ key.key_size }}</td>
+                            <td style="padding: 12px; font-family: monospace; font-size: 0.8rem;">{{ key.fingerprint[:16] }}...</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p style="color: var(--text-muted); text-align: center; padding: 20px;">You haven't generated any keys yet.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Audit Logs -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">📋 Audit Logs</h2>
+        </div>
+        <div class="card-body">
+            {% if audit_logs %}
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; text-align: left; border-collapse: collapse; color: var(--text-secondary); font-size: 0.9rem;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <th style="padding: 12px;">Time</th>
+                            <th style="padding: 12px;">Action</th>
+                            <th style="padding: 12px;">Status</th>
+                            <th style="padding: 12px;">Details / File</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in audit_logs|sort(attribute='timestamp', reverse=True) %}
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 12px;">{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                            <td style="padding: 12px; font-weight: bold;">{{ log.action }}</td>
+                            <td style="padding: 12px;">
+                                {% if log.status == 'SUCCESS' %}
+                                <span style="color: var(--success);">{{ log.status }}</span>
+                                {% else %}
+                                <span style="color: var(--danger);">{{ log.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 12px;">{{ log.file_name or log.details }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p style="color: var(--text-muted); text-align: center; padding: 20px;">No activity logged yet.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

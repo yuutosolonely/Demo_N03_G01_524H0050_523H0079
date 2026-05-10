@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Register — Digital Signature Tool{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title"><span class="gradient-text">Register</span></h1>
+    <p class="page-subtitle">Create a new secure workspace</p>
+</div>
+
+<div class="auth-layout" style="max-width: 400px; margin: 0 auto;">
+    <div class="card">
+        <div class="card-body">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                {% for category, message in messages %}
+                  <div class="alert alert-{{ category }}" style="color: #ef4444; margin-bottom: 1rem; font-weight: bold; text-align: center;">
+                    {{ message }}
+                  </div>
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
+            
+            <form method="POST" action="{{ url_for('register') }}">
+                <div class="form-group">
+                    <label class="form-label" for="username">Choose Username</label>
+                    <input type="text" class="form-control" id="username" name="username" required>
+                </div>
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label class="form-label" for="password">Choose Password</label>
+                    <input type="password" class="form-control" id="password" name="password" required 
+                           minlength="8" 
+                           pattern="(?=.*[A-Z])(?=.*[!@#$%^&*(),.?&quot;:{}|<>]).{8,}" 
+                           title="Must be at least 8 characters long, contain at least one uppercase letter and one special character.">
+                    <small style="color: var(--text-muted); font-size: 0.8rem; display: block; margin-top: 4px;">
+                        Must be at least 8 chars, 1 uppercase, 1 special char.
+                    </small>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full" style="margin-top: 1.5rem;">
+                    <span class="btn-icon">📝</span> Register
+                </button>
+            </form>
+            <p style="text-align: center; margin-top: 1rem; color: var(--text-secondary);">
+                Already have an account? <a href="{{ url_for('login') }}" style="color: var(--accent-cyan);">Login here</a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

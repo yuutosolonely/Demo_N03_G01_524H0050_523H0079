@@ -63,7 +63,7 @@ def build_tbs_data(file_data, signed_at, algorithm):
     return file_data + separator + signed_at.encode("utf-8") + field_sep + algorithm.encode("utf-8")
 
 
-def sign_file(file_path, key_name, password=None):
+def sign_file(file_path, key_name, user_id, password=None):
     """
     Sign a file and create a .sigbundle archive.
 
@@ -78,6 +78,7 @@ def sign_file(file_path, key_name, password=None):
     Args:
         file_path: Path to the PDF file to sign.
         key_name: Name of the key pair to use for signing.
+        user_id: ID of the user signing the file.
         password: Optional password for the private key.
 
     Returns:
@@ -90,7 +91,7 @@ def sign_file(file_path, key_name, password=None):
         file_data = f.read()
 
     # Step 2: Load private key and determine algorithm
-    private_key = load_private_key(key_name, password)
+    private_key = load_private_key(key_name, user_id, password)
 
     from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
     from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePrivateKey
@@ -128,7 +129,7 @@ def sign_file(file_path, key_name, password=None):
         )
 
     # Step 6: Get public key PEM
-    public_key_pem = get_public_key_pem(key_name)
+    public_key_pem = get_public_key_pem(key_name, user_id)
 
     # Step 7: Create manifest
     manifest = {

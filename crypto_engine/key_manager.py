@@ -2,10 +2,9 @@
 Key Manager Module
 ==================
 Handles RSA and ECDSA key pair generation, storage, loading, and metadata extraction.
+Now uses Database for secure storage.
 """
 
-import os
-import json
 import hashlib
 from datetime import datetime, timezone
 
@@ -16,106 +15,57 @@ from cryptography.hazmat.primitives.serialization import (
     BestAvailableEncryption
 )
 
+from models import db, KeyRecord
 
-# Default directory for key storage
-KEYS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "keys")
-
-
-def ensure_keys_dir():
-    """Ensure the keys directory exists."""
-    os.makedirs(KEYS_DIR, exist_ok=True)
-
-
-def generate_rsa_keypair(key_size=2048, key_name=None, password=None):
-    """
-    Generate an RSA key pair and save to PEM files.
-    
-    Args:
-        key_size: RSA key size in bits (2048 or 4096)
-        key_name: Optional name for the key files. Auto-generated if None.
-        password: Optional password to encrypt the private key.
-    
-    Returns:
-        dict with key metadata including file paths and fingerprint.
-    """
-    ensure_keys_dir()
-    
-    # Generate RSA private key
+def generate_rsa_keypair(user_id, key_size=2048, key_name=None, password=None):
+    """Generate an RSA key pair and save to Database."""
     private_key = rsa.generate_private_key(
         public_exponent=65537,
         key_size=key_size,
     )
     public_key = private_key.public_key()
     
-    # Generate key name if not provided
     if not key_name:
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         key_name = f"rsa_{key_size}_{timestamp}"
     
-    # Serialize private key
-    if password:
-        encryption = BestAvailableEncryption(password.encode())
-    else:
-        encryption = NoEncryption()
+    encryption = BestAvailableEncryption(password.encode()) if password else NoEncryption()
     
     private_pem = private_key.private_bytes(
         encoding=Encoding.PEM,
         format=PrivateFormat.PKCS8,
         encryption_algorithm=encryption
-    )
+    ).decode('utf-8')
     
-    # Serialize public key
     public_pem = public_key.public_bytes(
         encoding=Encoding.PEM,
         format=PublicFormat.SubjectPublicKeyInfo
+    ).decode('utf-8')
+    
+    fingerprint = compute_key_fingerprint(public_pem.encode('utf-8'))
+    
+    key_record = KeyRecord(
+        user_id=user_id,
+        key_name=key_name,
+        algorithm="RSA",
+        key_size=str(key_size),
+        fingerprint=fingerprint,
+        public_pem=public_pem,
+        private_pem=private_pem
     )
+    db.session.add(key_record)
+    db.session.commit()
     
-    # Save to files
-    private_path = os.path.join(KEYS_DIR, f"{key_name}_private.pem")
-    public_path = os.path.join(KEYS_DIR, f"{key_name}_public.pem")
-    
-    with open(private_path, "wb") as f:
-        f.write(private_pem)
-    with open(public_path, "wb") as f:
-        f.write(public_pem)
-    
-    # Compute public key fingerprint (SHA-256 of DER-encoded public key)
-    fingerprint = compute_key_fingerprint(public_pem)
-    
-    # Save metadata
-    metadata = {
+    return {
         "algorithm": "RSA",
         "key_size": key_size,
         "key_name": key_name,
         "fingerprint": fingerprint,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "private_key_file": os.path.basename(private_path),
-        "public_key_file": os.path.basename(public_path),
-        "password_protected": password is not None,
     }
-    
-    meta_path = os.path.join(KEYS_DIR, f"{key_name}_meta.json")
-    with open(meta_path, "w") as f:
-        json.dump(metadata, f, indent=2)
-    
-    return metadata
 
 
-def generate_ecdsa_keypair(curve_name="secp256r1", key_name=None, password=None):
-    """
-    Generate an ECDSA key pair and save to PEM files.
-    
-    Args:
-        curve_name: Elliptic curve name (secp256r1, secp384r1, secp521r1)
-        key_name: Optional name for the key files. Auto-generated if None.
-        password: Optional password to encrypt the private key.
-    
-    Returns:
-        dict with key metadata including file paths and fingerprint.
-    """
-    ensure_keys_dir()
-    
-    # Select curve
+def generate_ecdsa_keypair(user_id, curve_name="secp256r1", key_name=None, password=None):
+    """Generate an ECDSA key pair and save to Database."""
     curves = {
         "secp256r1": ec.SECP256R1(),
         "secp384r1": ec.SECP384R1(),
@@ -123,91 +73,72 @@ def generate_ecdsa_keypair(curve_name="secp256r1", key_name=None, password=None)
     }
     curve = curves.get(curve_name, ec.SECP256R1())
     
-    # Generate ECDSA private key
     private_key = ec.generate_private_key(curve)
     public_key = private_key.public_key()
     
-    # Generate key name if not provided
     if not key_name:
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         key_name = f"ecdsa_{curve_name}_{timestamp}"
     
-    # Serialize private key
-    if password:
-        encryption = BestAvailableEncryption(password.encode())
-    else:
-        encryption = NoEncryption()
+    encryption = BestAvailableEncryption(password.encode()) if password else NoEncryption()
     
     private_pem = private_key.private_bytes(
         encoding=Encoding.PEM,
         format=PrivateFormat.PKCS8,
         encryption_algorithm=encryption
-    )
+    ).decode('utf-8')
     
-    # Serialize public key
     public_pem = public_key.public_bytes(
         encoding=Encoding.PEM,
         format=PublicFormat.SubjectPublicKeyInfo
+    ).decode('utf-8')
+    
+    fingerprint = compute_key_fingerprint(public_pem.encode('utf-8'))
+    
+    key_record = KeyRecord(
+        user_id=user_id,
+        key_name=key_name,
+        algorithm="ECDSA",
+        key_size=curve_name,
+        fingerprint=fingerprint,
+        public_pem=public_pem,
+        private_pem=private_pem
     )
+    db.session.add(key_record)
+    db.session.commit()
     
-    # Save to files
-    private_path = os.path.join(KEYS_DIR, f"{key_name}_private.pem")
-    public_path = os.path.join(KEYS_DIR, f"{key_name}_public.pem")
-    
-    with open(private_path, "wb") as f:
-        f.write(private_pem)
-    with open(public_path, "wb") as f:
-        f.write(public_pem)
-    
-    # Compute public key fingerprint
-    fingerprint = compute_key_fingerprint(public_pem)
-    
-    # Save metadata
-    metadata = {
+    return {
         "algorithm": "ECDSA",
         "curve": curve_name,
         "key_name": key_name,
         "fingerprint": fingerprint,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "private_key_file": os.path.basename(private_path),
-        "public_key_file": os.path.basename(public_path),
-        "password_protected": password is not None,
     }
-    
-    meta_path = os.path.join(KEYS_DIR, f"{key_name}_meta.json")
-    with open(meta_path, "w") as f:
-        json.dump(metadata, f, indent=2)
-    
-    return metadata
 
 
 def compute_key_fingerprint(public_pem_bytes):
     """Compute SHA-256 fingerprint of a public key's PEM bytes."""
     digest = hashlib.sha256(public_pem_bytes).hexdigest()
-    # Format as colon-separated pairs for readability
     return ":".join(digest[i:i+2] for i in range(0, 32, 2))
 
 
-def load_private_key(key_name, password=None):
-    """Load a private key from PEM file."""
-    private_path = os.path.join(KEYS_DIR, f"{key_name}_private.pem")
-    
-    with open(private_path, "rb") as f:
-        private_pem = f.read()
-    
+def load_private_key(key_name, user_id, password=None):
+    """Load a private key from DB."""
+    key_record = KeyRecord.query.filter_by(key_name=key_name, user_id=user_id).first()
+    if not key_record:
+        raise ValueError(f"Key {key_name} not found")
+        
     pwd = password.encode() if password else None
-    private_key = serialization.load_pem_private_key(private_pem, password=pwd)
+    private_key = serialization.load_pem_private_key(key_record.private_pem.encode('utf-8'), password=pwd)
     return private_key
 
 
-def load_public_key(key_name):
-    """Load a public key from PEM file."""
-    public_path = os.path.join(KEYS_DIR, f"{key_name}_public.pem")
-    
-    with open(public_path, "rb") as f:
-        public_pem = f.read()
-    
-    public_key = serialization.load_pem_public_key(public_pem)
+def load_public_key(key_name, user_id):
+    """Load a public key from DB."""
+    key_record = KeyRecord.query.filter_by(key_name=key_name, user_id=user_id).first()
+    if not key_record:
+        raise ValueError(f"Key {key_name} not found")
+        
+    public_key = serialization.load_pem_public_key(key_record.public_pem.encode('utf-8'))
     return public_key
 
 
@@ -216,33 +147,17 @@ def load_public_key_from_pem(pem_bytes):
     return serialization.load_pem_public_key(pem_bytes)
 
 
-def get_public_key_pem(key_name):
+def get_public_key_pem(key_name, user_id):
     """Get the raw PEM bytes of a public key."""
-    public_path = os.path.join(KEYS_DIR, f"{key_name}_public.pem")
-    with open(public_path, "rb") as f:
-        return f.read()
+    key_record = KeyRecord.query.filter_by(key_name=key_name, user_id=user_id).first()
+    if not key_record:
+        raise ValueError(f"Key {key_name} not found")
+    return key_record.public_pem.encode('utf-8')
 
 
-def list_keys():
-    """List all available key pairs with their metadata."""
-    ensure_keys_dir()
-    keys = []
-    
-    for filename in os.listdir(KEYS_DIR):
-        if filename.endswith("_meta.json"):
-            meta_path = os.path.join(KEYS_DIR, filename)
-            with open(meta_path, "r") as f:
-                metadata = json.load(f)
-            keys.append(metadata)
-    
-    # Sort by creation time, newest first
-    keys.sort(key=lambda k: k.get("created_at", ""), reverse=True)
-    return keys
-
-
-def delete_key(key_name):
-    """Delete a key pair and its metadata."""
-    for suffix in ["_private.pem", "_public.pem", "_meta.json"]:
-        path = os.path.join(KEYS_DIR, f"{key_name}{suffix}")
-        if os.path.exists(path):
-            os.remove(path)
+def delete_key(key_name, user_id):
+    """Delete a key pair from DB."""
+    key_record = KeyRecord.query.filter_by(key_name=key_name, user_id=user_id).first()
+    if key_record:
+        db.session.delete(key_record)
+        db.session.commit()

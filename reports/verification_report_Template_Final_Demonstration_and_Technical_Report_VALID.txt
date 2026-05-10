@@ -1,0 +1,58 @@
+======================================================================
+            DIGITAL SIGNATURE VERIFICATION REPORT
+======================================================================
+
+Report Generated : 2026-05-10T03:15:33.918034+00:00
+
+======================================================================
+  1. DOCUMENT INFORMATION
+======================================================================
+
+  File Name       : Template_Final_Demonstration_and_Technical_Report.docx
+  File Size       : 41561 bytes
+  Signed At       : 2026-05-10T03:14:27.594413+00:00
+
+======================================================================
+  2. CRYPTOGRAPHIC DETAILS
+======================================================================
+
+  Algorithm       : ECDSA
+  Key Size        : 256 bits
+  Key Fingerprint : fa:d8:2f:a1:e4:2f:12:d1:d8:30:b6:4f:86:f1:d2:32
+  Hash Algorithm  : SHA-256
+  Metadata Signed : Yes (v2.0 — timestamp & algorithm bound)
+
+======================================================================
+  3. HASH COMPARISON
+======================================================================
+
+  Original Hash   : ac74731f779cbf0cae6d9a13f8d2bb030b5a44a900bd9d9817cac7866cd9dd7c
+  (recorded at signing time)
+
+  Recomputed Hash : ac74731f779cbf0cae6d9a13f8d2bb030b5a44a900bd9d9817cac7866cd9dd7c
+  (computed now from received file)
+
+  Hash Match      : YES — Hashes are identical
+
+======================================================================
+  4. SIGNATURE VERIFICATION
+======================================================================
+
+  Signature (hex) : 304502204cabe3ca46adaadfe4c7409983d08a8583bc98ddf25e0151dc0be463...
+
+  Verification
+  Result          : VALID
+
+======================================================================
+  5. NOTES
+======================================================================
+
+  Binary-Level Integrity:
+    Verification operates on raw bytes. Even if this file is corrupted and cannot be opened by a PDF viewer, the hash and signature verification still work correctly, proving binary-level data integrity.
+
+  PKI Notice:
+    IMPORTANT: In production, the public key would be distributed via a Public Key Infrastructure (PKI) or Certificate Authority (CA). The public key is bundled in this archive for local simulation and demonstration purposes only.
+
+======================================================================
+  END OF REPORT
+======================================================================
