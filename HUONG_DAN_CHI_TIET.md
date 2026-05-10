@@ -916,26 +916,54 @@ function buildHashDiffGrid(hash1, hash2) {
 
 ## 10. Cách chạy dự án
 
-### Cài đặt
+### 10.1. Chạy dưới Local (Máy tính cá nhân)
 
+#### Cài đặt
 ```bash
 cd f:\Hoc_tap\BAO MAT MT\digital-signature-tool
 
-# Cài thư viện
-pip install flask cryptography
+# Cài thư viện cần thiết
+pip install -r requirements.txt
 
 # Chạy server
 python app.py
 ```
 
-### Mở trình duyệt
-
+#### Mở trình duyệt
 ```
 http://127.0.0.1:5000         ← Trang chủ
-http://127.0.0.1:5000/sender  ← Ký file
-http://127.0.0.1:5000/receiver ← Xác minh
+http://127.0.0.1:5000/sender  ← Ký file (cần đăng nhập)
+http://127.0.0.1:5000/receiver ← Xác minh (công cộng)
 http://127.0.0.1:5000/demo    ← Demo tấn công
 ```
+*Dưới local, hệ thống sử dụng cơ sở dữ liệu mặc định là **SQLite** (`app.db`) tự động sinh trong thư mục dự án.*
+
+---
+
+### 10.2. Deploy trực tuyến trên Cloud (Railway - khuyến nghị)
+
+Dự án hỗ trợ kiến trúc Hybrid nâng cao, tự động chuyển đổi từ SQLite sang PostgreSQL khi phát hiện môi trường Cloud để phục vụ vận hành thực tế (Production).
+
+#### Bước 1: Đẩy mã nguồn lên GitHub
+1. Sử dụng Git để đẩy mã nguồn mới nhất lên GitHub (nhánh `main`).
+2. Mã nguồn đã được tối ưu hóa sẵn:
+   - File `Procfile` chỉ định cho Web server chạy bằng `gunicorn`.
+   - File `requirements.txt` loại bỏ các thư viện rác gây lỗi trên Linux (như `metatrader5`).
+
+#### Bước 2: Khởi tạo trên Railway.app
+1. Truy cập vào **[Railway.app](https://railway.app/)** và đăng nhập.
+2. Bấm **New Project** -> Chọn **Deploy from GitHub repo** -> Chọn Repo của bạn.
+3. Khi hệ thống tạo xong Service, bấm **+ New** -> **Database** -> **Add PostgreSQL**.
+
+#### Bước 3: Liên kết Database (PostgreSQL) với Code
+1. Nhấp chuột vào ô **PostgreSQL** vừa tạo -> sang tab **Variables** -> Nhấp vào biểu tượng con mắt ở dòng biến `DATABASE_URL` và copy đường link đó.
+2. Đóng PostgreSQL, nhấp vào ô **Web Service** (chứa code) -> sang tab **Variables**.
+3. Bấm **+ New Variable**, nhập:
+   - Name: `DATABASE_URL`
+   - Value: *(Dán đường link postgresql://... vừa copy ở trên)*
+4. Nhấn **Add**. 
+
+Hệ thống sẽ tự động build lại dựa trên `Procfile` và nhận dạng PostgreSQL. Dữ liệu tài khoản, khóa mật mã và nhật ký audit sẽ được lưu trữ vĩnh viễn trên đám mây.
 
 ### Chạy test tự động
 
