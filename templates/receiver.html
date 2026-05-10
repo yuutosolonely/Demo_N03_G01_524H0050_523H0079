@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Receiver — Verify Signature{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title"><span class="gradient-text">Receiver</span> — Verify Signature</h1>
+    <p class="page-subtitle">Upload a signed bundle to verify the digital signature and file integrity</p>
+</div>
+
+<div class="receiver-layout">
+    <!-- Upload Section -->
+    <div class="card" id="verify-upload-card">
+        <div class="card-header">
+            <h2 class="card-title">📦 Upload Signed Bundle</h2>
+        </div>
+        <div class="card-body">
+            <div class="upload-zone" id="verify-upload-zone"
+                 ondragover="handleDragOver(event)" 
+                 ondragleave="handleDragLeave(event)"
+                 ondrop="handleDrop(event, 'verify-file-input')">
+                <input type="file" id="verify-file-input" accept=".sigbundle"
+                       onchange="handleFileSelect(this, 'verify')" hidden>
+                <div class="upload-icon">📦</div>
+                <p class="upload-text">
+                    <span class="upload-cta" onclick="document.getElementById('verify-file-input').click()">
+                        Click to upload
+                    </span> or drag and drop
+                </p>
+                <p class="upload-hint">.sigbundle files only</p>
+            </div>
+            
+            <div class="file-preview" id="verify-file-preview" style="display:none;">
+                <div class="file-preview-icon">📦</div>
+                <div class="file-preview-info">
+                    <div class="file-preview-name" id="verify-file-name"></div>
+                    <div class="file-preview-size" id="verify-file-size"></div>
+                </div>
+                <button class="btn btn-ghost btn-sm" onclick="clearFile('verify')">✕</button>
+            </div>
+
+            <button class="btn btn-primary btn-lg btn-full" id="btn-verify" onclick="verifyBundle()" disabled>
+                <span class="btn-icon">🔍</span> Verify Signature
+            </button>
+        </div>
+    </div>
+
+    <!-- Verification Result -->
+    <div class="card result-card" id="verify-result-card" style="display:none;">
+        <div class="card-header">
+            <h2 class="card-title" id="verify-result-title">Verification Result</h2>
+        </div>
+        <div class="card-body">
+            <!-- Status Banner -->
+            <div class="status-banner" id="verify-status-banner">
+                <div class="status-icon" id="verify-status-icon"></div>
+                <div class="status-text" id="verify-status-text"></div>
+            </div>
+
+            <!-- Details -->
+            <div class="result-details" id="verify-details">
+                <div class="result-row">
+                    <span class="result-label">File Name</span>
+                    <span class="result-value" id="verify-result-filename"></span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">File Size</span>
+                    <span class="result-value" id="verify-result-filesize"></span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">Algorithm</span>
+                    <span class="result-value" id="verify-result-algo"></span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">Key Size</span>
+                    <span class="result-value" id="verify-result-keysize"></span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">Signed At</span>
+                    <span class="result-value" id="verify-result-time"></span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">Signature</span>
+                    <code class="result-value mono" id="verify-result-sig"></code>
+                </div>
+            </div>
+
+            <!-- Hash Comparison -->
+            <div class="hash-comparison" id="verify-hash-comparison">
+                <h3 class="hash-comp-title">SHA-256 Hash Comparison</h3>
+                <div class="hash-comp-row">
+                    <span class="hash-comp-label">Original (signed):</span>
+                    <div class="hash-comp-value" id="verify-hash-original"></div>
+                </div>
+                <div class="hash-comp-row">
+                    <span class="hash-comp-label">Recomputed (now):</span>
+                    <div class="hash-comp-value" id="verify-hash-recomputed"></div>
+                </div>
+            </div>
+
+            <!-- Binary Level Note -->
+            <div class="binary-note" id="verify-binary-note">
+                <div class="binary-note-icon">🔬</div>
+                <div class="binary-note-text">
+                    Verification operates on <strong>raw bytes</strong>. Even if the file is corrupted 
+                    and cannot be opened by a PDF viewer, hash and signature verification still work, 
+                    proving <strong>binary-level data integrity</strong>.
+                </div>
+            </div>
+
+            <!-- Metadata Binding Notice (v2.0) -->
+            <div class="tbs-notice" id="verify-tbs-notice" style="display:none;">
+                <div class="tbs-notice-icon">🔗</div>
+                <div class="tbs-notice-text" id="verify-tbs-text"></div>
+            </div>
+
+            <!-- PKI Notice -->
+            <div class="pki-notice" id="verify-pki-notice" style="display:none;">
+                <div class="pki-notice-icon">ℹ️</div>
+                <div class="pki-notice-text" id="verify-pki-text"></div>
+            </div>
+
+            <!-- Download Audit Report -->
+            <div class="report-section" id="verify-report-section" style="display:none;">
+                <hr style="border-color: rgba(148, 163, 184, 0.1); margin: 1.5rem 0;">
+                <button class="btn btn-accent btn-lg btn-full" id="btn-download-report" onclick="downloadAuditReport()">
+                    <span class="btn-icon">📋</span> Download Verification Report
+                </button>
+                <p style="text-align:center; font-size:0.8rem; color:#64748b; margin-top:0.5rem;">
+                    Audit trail — contains timestamp, hashes, key fingerprint, and verification result
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

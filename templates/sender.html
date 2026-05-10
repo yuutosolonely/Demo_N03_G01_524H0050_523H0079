@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+{% block title %}Sender — Sign PDF{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title"><span class="gradient-text">Sender</span> — Sign PDF</h1>
+    <p class="page-subtitle">Generate key pairs and sign PDF documents with RSA-PSS or ECDSA</p>
+</div>
+
+<div class="sender-layout">
+    <!-- Step 1: Key Management -->
+    <div class="card step-card" id="step-keys">
+        <div class="card-header">
+            <div class="step-badge">Step 1</div>
+            <h2 class="card-title">🔑 Key Management</h2>
+        </div>
+        <div class="card-body">
+            <!-- Generate New Key -->
+            <div class="key-gen-form">
+                <h3 class="form-section-title">Generate New Key Pair</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="algo-select">Algorithm</label>
+                        <select class="form-select" id="algo-select">
+                            <option value="RSA">RSA</option>
+                            <option value="ECDSA">ECDSA</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="key-size-group">
+                        <label class="form-label" for="key-size-select">Key Size</label>
+                        <select class="form-select" id="key-size-select">
+                            <option value="2048">2048 bits</option>
+                            <option value="4096">4096 bits</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="curve-group" style="display:none;">
+                        <label class="form-label" for="curve-select">Curve</label>
+                        <select class="form-select" id="curve-select">
+                            <option value="secp256r1">P-256 (secp256r1)</option>
+                            <option value="secp384r1">P-384 (secp384r1)</option>
+                            <option value="secp521r1">P-521 (secp521r1)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group flex-grow">
+                        <label class="form-label" for="key-name-input">Key Name (optional)</label>
+                        <input type="text" class="form-input" id="key-name-input" placeholder="Auto-generated if empty">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">&nbsp;</label>
+                        <button class="btn btn-primary" id="btn-generate-key" onclick="generateKeys()">
+                            <span class="btn-icon">⚡</span> Generate
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Existing Keys -->
+            <div class="key-list-section">
+                <h3 class="form-section-title">Available Keys</h3>
+                <div class="key-list" id="key-list">
+                    {% if keys %}
+                        {% for key in keys %}
+                        <div class="key-item {% if loop.first %}selected{% endif %}" 
+                             data-key-name="{{ key.key_name }}"
+                             onclick="selectKey(this, '{{ key.key_name }}')">
+                            <div class="key-item-icon">
+                                {% if key.algorithm == 'RSA' %}🔐{% else %}🔑{% endif %}
+                            </div>
+                            <div class="key-item-info">
+                                <div class="key-item-name">{{ key.key_name }}</div>
+                                <div class="key-item-detail">
+                                    {{ key.algorithm }} 
+                                    {% if key.key_size %}{{ key.key_size }}-bit{% endif %}
+                                    {% if key.curve %}({{ key.curve }}){% endif %}
+                                </div>
+                            </div>
+                            <div class="key-item-fingerprint" title="{{ key.fingerprint }}">
+                                {{ key.fingerprint[:17] }}...
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-state" id="no-keys-msg">
+                            <span class="empty-icon">🔑</span>
+                            <p>No keys generated yet. Generate a key pair first.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 2: Sign PDF -->
+    <div class="card step-card" id="step-sign">
+        <div class="card-header">
+            <div class="step-badge">Step 2</div>
+            <h2 class="card-title">📝 Sign PDF File</h2>
+        </div>
+        <div class="card-body">
+            <!-- File Upload -->
+            <div class="upload-zone" id="sign-upload-zone"
+                 ondragover="handleDragOver(event)" 
+                 ondragleave="handleDragLeave(event)"
+                 ondrop="handleDrop(event, 'sign-file-input')">
+                <input type="file" id="sign-file-input" accept=".pdf" 
+                       onchange="handleFileSelect(this, 'sign')" hidden>
+                <div class="upload-icon">📄</div>
+                <p class="upload-text">
+                    <span class="upload-cta" onclick="document.getElementById('sign-file-input').click()">
+                        Click to upload
+                    </span> or drag and drop
+                </p>
+                <p class="upload-hint">PDF files only (max 50MB)</p>
+            </div>
+            
+            <!-- File Preview -->
+            <div class="file-preview" id="sign-file-preview" style="display:none;">
+                <div class="file-preview-icon">📄</div>
+                <div class="file-preview-info">
+                    <div class="file-preview-name" id="sign-file-name"></div>
+                    <div class="file-preview-size" id="sign-file-size"></div>
+                </div>
+                <button class="btn btn-ghost btn-sm" onclick="clearFile('sign')">✕</button>
+            </div>
+
+            <!-- Selected Key Display -->
+            <div class="selected-key-display" id="selected-key-display">
+                <span class="selected-key-label">Signing with:</span>
+                <span class="selected-key-name" id="selected-key-name">No key selected</span>
+            </div>
+
+            <!-- Sign Button -->
+            <button class="btn btn-primary btn-lg btn-full" id="btn-sign" onclick="signFile()" disabled>
+                <span class="btn-icon">✍️</span> Sign Document
+            </button>
+        </div>
+    </div>
+
+    <!-- Step 3: Result -->
+    <div class="card step-card result-card" id="step-result" style="display:none;">
+        <div class="card-header">
+            <div class="step-badge step-badge-success">✓ Signed</div>
+            <h2 class="card-title">📦 Signing Result</h2>
+        </div>
+        <div class="card-body">
+            <div class="result-details">
+                <div class="result-row">
+                    <span class="result-label">File</span>
+                    <span class="result-value" id="result-file-name"></span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">Algorithm</span>
+                    <span class="result-value" id="result-algorithm"></span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">SHA-256 Hash</span>
+                    <div class="hash-display">
+                        <code class="hash-value" id="result-hash"></code>
+                        <button class="btn btn-ghost btn-sm" onclick="copyHash('result-hash')" title="Copy hash">
+                            📋
+                        </button>
+                    </div>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">Signature</span>
+                    <code class="result-value mono" id="result-signature"></code>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">Signed At</span>
+                    <span class="result-value" id="result-timestamp"></span>
+                </div>
+            </div>
+            
+            <a class="btn btn-primary btn-lg btn-full" id="btn-download-bundle" href="#" download>
+                <span class="btn-icon">📥</span> Download .sigbundle
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Initialize selected key from first available
+    let selectedKeyName = null;
+    const firstKey = document.querySelector('.key-item.selected');
+    if (firstKey) {
+        selectedKeyName = firstKey.dataset.keyName;
+        document.getElementById('selected-key-name').textContent = selectedKeyName;
+    }
+    
+    // Algorithm toggle
+    document.getElementById('algo-select').addEventListener('change', function() {
+        const isRSA = this.value === 'RSA';
+        document.getElementById('key-size-group').style.display = isRSA ? '' : 'none';
+        document.getElementById('curve-group').style.display = isRSA ? 'none' : '';
+    });
+    
+    function updateSignButton() {
+        const fileInput = document.getElementById('sign-file-input');
+        const btn = document.getElementById('btn-sign');
+        btn.disabled = !(fileInput.files.length > 0 && selectedKeyName);
+    }
+</script>
+{% endblock %}

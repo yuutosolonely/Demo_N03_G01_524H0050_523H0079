@@ -1,0 +1,10 @@
+{
+  "algorithm": "RSA",
+  "key_size": 2048,
+  "key_name": "test_rsa_backup",
+  "fingerprint": "8e:a8:44:a1:c9:98:f7:26:10:14:3e:93:7d:e8:b4:5e",
+  "created_at": "2026-05-05T07:13:42.208205+00:00",
+  "private_key_file": "test_rsa_backup_private.pem",
+  "public_key_file": "test_rsa_backup_public.pem",
+  "password_protected": false
+}

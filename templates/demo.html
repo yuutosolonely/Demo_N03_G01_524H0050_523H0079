@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}Attack Demo — Tamper Detection{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title"><span class="gradient-text-red">Attack Demo</span> — Tamper Detection</h1>
+    <p class="page-subtitle">
+        Demonstrate how even a single byte modification or signature reuse is instantly detected
+    </p>
+</div>
+
+<div class="demo-layout">
+    <!-- Upload & Attack Selection -->
+    <div class="card" id="demo-upload-card">
+        <div class="card-header">
+            <h2 class="card-title">📦 Upload Signed Bundle</h2>
+        </div>
+        <div class="card-body">
+            <div class="upload-zone" id="demo-upload-zone"
+                 ondragover="handleDragOver(event)" 
+                 ondragleave="handleDragLeave(event)"
+                 ondrop="handleDrop(event, 'demo-file-input')">
+                <input type="file" id="demo-file-input" accept=".sigbundle"
+                       onchange="handleFileSelect(this, 'demo')" hidden>
+                <div class="upload-icon">📦</div>
+                <p class="upload-text">
+                    <span class="upload-cta" onclick="document.getElementById('demo-file-input').click()">
+                        Click to upload
+                    </span> or drag and drop a <strong>.sigbundle</strong>
+                </p>
+            </div>
+            
+            <div class="file-preview" id="demo-file-preview" style="display:none;">
+                <div class="file-preview-icon">📦</div>
+                <div class="file-preview-info">
+                    <div class="file-preview-name" id="demo-file-name"></div>
+                    <div class="file-preview-size" id="demo-file-size"></div>
+                </div>
+                <button class="btn btn-ghost btn-sm" onclick="clearFile('demo')">✕</button>
+            </div>
+
+            <!-- Attack Type Selection -->
+            <div class="attack-type-section">
+                <h3 class="form-section-title">Select Attack Type</h3>
+                <div class="attack-options">
+                    <label class="attack-option selected" id="attack-opt-byte">
+                        <input type="radio" name="attack_type" value="modify_byte" checked
+                               onchange="selectAttackType(this)">
+                        <div class="attack-option-content">
+                            <div class="attack-option-icon">🔧</div>
+                            <div class="attack-option-info">
+                                <div class="attack-option-title">Single Byte Modification</div>
+                                <div class="attack-option-desc">
+                                    Flip 1 bit in the PDF content. The smallest possible change. 
+                                    Demonstrates the <strong>avalanche effect</strong> of SHA-256.
+                                </div>
+                            </div>
+                        </div>
+                    </label>
+                    <label class="attack-option" id="attack-opt-reuse">
+                        <input type="radio" name="attack_type" value="signature_reuse"
+                               onchange="selectAttackType(this)">
+                        <div class="attack-option-content">
+                            <div class="attack-option-icon">🔄</div>
+                            <div class="attack-option-info">
+                                <div class="attack-option-title">Signature Reuse Attack</div>
+                                <div class="attack-option-desc">
+                                    Replace the PDF with a fake document but keep the original signature.
+                                    Proves signatures are <strong>content-bound</strong> and non-transferable.
+                                </div>
+                            </div>
+                        </div>
+                    </label>
+                    <label class="attack-option" id="attack-opt-metadata">
+                        <input type="radio" name="attack_type" value="tamper_metadata"
+                               onchange="selectAttackType(this)">
+                        <div class="attack-option-content">
+                            <div class="attack-option-icon">🕐</div>
+                            <div class="attack-option-info">
+                                <div class="attack-option-title">Metadata Tampering (Timestamp Forgery)</div>
+                                <div class="attack-option-desc">
+                                    Keep the file content intact but change the <strong>signed_at</strong> timestamp.
+                                    In v2.0, metadata is bound to the signature — this attack is <strong>detected</strong>.
+                                </div>
+                            </div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <button class="btn btn-danger btn-lg btn-full" id="btn-attack" onclick="runAttack()" disabled>
+                <span class="btn-icon">⚔️</span> Execute Attack & Verify
+            </button>
+        </div>
+    </div>
+
+    <!-- Side-by-Side Results -->
+    <div class="demo-results" id="demo-results" style="display:none;">
+        <!-- Original Verification -->
+        <div class="card demo-result-card" id="demo-original-card">
+            <div class="card-header">
+                <h2 class="card-title">✅ Original Bundle</h2>
+            </div>
+            <div class="card-body">
+                <div class="status-banner status-valid">
+                    <div class="status-icon">✓</div>
+                    <div class="status-text">Signature Valid</div>
+                </div>
+                <div class="result-details">
+                    <div class="result-row">
+                        <span class="result-label">SHA-256 Hash</span>
+                        <div class="hash-display">
+                            <code class="hash-value" id="demo-original-hash"></code>
+                        </div>
+                    </div>
+                    <div class="result-row">
+                        <span class="result-label">Status</span>
+                        <span class="result-value status-text-valid">✓ File integrity confirmed</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tampered Verification -->
+        <div class="card demo-result-card" id="demo-tampered-card">
+            <div class="card-header">
+                <h2 class="card-title">❌ Tampered Bundle</h2>
+            </div>
+            <div class="card-body">
+                <div class="status-banner status-invalid">
+                    <div class="status-icon">✗</div>
+                    <div class="status-text">SIGNATURE INVALID</div>
+                </div>
+                <div class="result-details">
+                    <div class="result-row">
+                        <span class="result-label">SHA-256 Hash</span>
+                        <div class="hash-display">
+                            <code class="hash-value" id="demo-tampered-hash"></code>
+                        </div>
+                    </div>
+                    <div class="result-row">
+                        <span class="result-label">Attack Details</span>
+                        <span class="result-value" id="demo-attack-details"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hash Diff Visualization -->
+    <div class="card hash-diff-card" id="hash-diff-card" style="display:none;">
+        <div class="card-header">
+            <h2 class="card-title">🔬 Character-Level Hash Diff (SHA-256 Avalanche Effect)</h2>
+        </div>
+        <div class="card-body">
+            <p class="hash-diff-desc">
+                Each character of the SHA-256 hash is compared. 
+                <span class="hash-char-match">Green</span> = matching, 
+                <span class="hash-char-diff">Red</span> = different.
+                Notice how changing just <strong>1 byte</strong> causes ~50% of hash characters to change.
+            </p>
+            <div class="hash-diff-grid" id="hash-diff-grid"></div>
+            <div class="hash-diff-stats">
+                <span id="hash-diff-stats-text"></span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function selectAttackType(radio) {
+        document.querySelectorAll('.attack-option').forEach(opt => opt.classList.remove('selected'));
+        radio.closest('.attack-option').classList.add('selected');
+    }
+</script>
+{% endblock %}

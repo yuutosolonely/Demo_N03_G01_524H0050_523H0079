@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}DigiSign - Digital Signature Tool{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <div class="hero-badge">Topic 7 — Digital Signatures & Applications</div>
+    <h1 class="hero-title">
+        <span class="gradient-text">Digital Signature</span> Tool
+    </h1>
+    <p class="hero-subtitle">
+        Sign PDF documents with RSA/ECDSA, verify integrity, and demonstrate 
+        tamper detection — even a single byte change is caught.
+    </p>
+    
+    <div class="hero-actions">
+        <a href="{{ url_for('sender') }}" class="btn btn-primary btn-lg" id="btn-start-signing">
+            <span class="btn-icon">✍️</span> Start Signing
+        </a>
+        <a href="{{ url_for('receiver') }}" class="btn btn-secondary btn-lg" id="btn-verify">
+            <span class="btn-icon">🔍</span> Verify Signature
+        </a>
+        <a href="{{ url_for('demo') }}" class="btn btn-danger btn-lg" id="btn-demo">
+            <span class="btn-icon">⚔️</span> Attack Demo
+        </a>
+    </div>
+</div>
+
+<!-- Feature Cards -->
+<div class="features-grid">
+    <div class="feature-card" id="feature-sign">
+        <div class="feature-icon feature-icon-cyan">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                <path d="M36 8L12 32l-4 8 8-4L40 12l-4-4z" stroke="currentColor" stroke-width="2" fill="none"/>
+                <path d="M30 14l4 4" stroke="currentColor" stroke-width="2"/>
+            </svg>
+        </div>
+        <h3 class="feature-title">Sign Documents</h3>
+        <p class="feature-desc">
+            Generate RSA-PSS or ECDSA key pairs and sign PDF files. 
+            The signed bundle contains the document, signature, and public key.
+        </p>
+    </div>
+    
+    <div class="feature-card" id="feature-verify">
+        <div class="feature-icon feature-icon-green">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                <circle cx="24" cy="24" r="16" stroke="currentColor" stroke-width="2" fill="none"/>
+                <path d="M16 24l5 5 11-11" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <h3 class="feature-title">Verify Integrity</h3>
+        <p class="feature-desc">
+            Upload a signed bundle to verify the signature. The tool recomputes 
+            SHA-256 and checks against the original — binary-level integrity.
+        </p>
+    </div>
+    
+    <div class="feature-card" id="feature-tamper">
+        <div class="feature-icon feature-icon-red">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                <path d="M24 8L8 16v12c0 8 6.4 15.5 16 18 9.6-2.5 16-10 16-18V16L24 8z" stroke="currentColor" stroke-width="2" fill="none"/>
+                <path d="M18 18l12 12M30 18L18 30" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+        </div>
+        <h3 class="feature-title">Tamper Detection</h3>
+        <p class="feature-desc">
+            Demonstrate how even 1 byte of modification is instantly detected.
+            See the avalanche effect in SHA-256 with character-level hash diff.
+        </p>
+    </div>
+</div>
+
+<!-- Architecture Overview -->
+<div class="arch-section">
+    <h2 class="section-title">System Architecture</h2>
+    <div class="arch-flow">
+        <div class="arch-node arch-sender">
+            <div class="arch-node-icon">👤</div>
+            <div class="arch-node-label">Sender</div>
+            <div class="arch-node-detail">Select PDF → Hash → Sign</div>
+        </div>
+        <div class="arch-arrow">
+            <div class="arch-arrow-line"></div>
+            <div class="arch-arrow-label">.sigbundle</div>
+        </div>
+        <div class="arch-node arch-channel">
+            <div class="arch-node-icon">🌐</div>
+            <div class="arch-node-label">Channel</div>
+            <div class="arch-node-detail">Untrusted network</div>
+        </div>
+        <div class="arch-arrow">
+            <div class="arch-arrow-line"></div>
+            <div class="arch-arrow-label">PDF + Signature</div>
+        </div>
+        <div class="arch-node arch-receiver">
+            <div class="arch-node-icon">👤</div>
+            <div class="arch-node-label">Receiver</div>
+            <div class="arch-node-detail">Hash → Verify → Alert</div>
+        </div>
+    </div>
+    
+    <div class="pki-notice">
+        <div class="pki-notice-icon">ℹ️</div>
+        <div class="pki-notice-text">
+            <strong>PKI Notice:</strong> In production, the public key would be distributed 
+            via a Public Key Infrastructure (PKI) or Certificate Authority (CA). 
+            Bundling it in the <code>.sigbundle</code> archive is for local simulation purposes only.
+        </div>
+    </div>
+</div>
+{% endblock %}
